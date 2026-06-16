@@ -8,6 +8,10 @@ type VoiceSettingsPanelProps = {
   onSelectVoice: (voice: SpeechSynthesisVoice | null) => void;
   onClearChat: () => void;
   onClose: () => void;
+  speechRate: number;
+  speechPitch: number;
+  onSpeechRateChange: (rate: number) => void;
+  onSpeechPitchChange: (pitch: number) => void;
 };
 
 export default function VoiceSettingsPanel({
@@ -18,13 +22,17 @@ export default function VoiceSettingsPanel({
   onSelectVoice,
   onClearChat,
   onClose,
+  speechRate,
+  speechPitch,
+  onSpeechRateChange,
+  onSpeechPitchChange,
 }: VoiceSettingsPanelProps) {
   const englishVoices = availableVoices.filter((v) => v.lang.startsWith('en'));
 
   return (
-    <div className="absolute top-0 right-0 w-72 bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl p-5 z-50 fade-in-up">
+    <div className="absolute top-0 right-0 w-80 bg-slate-900/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl p-5 z-50 fade-in-up">
       <div className="flex items-center justify-between mb-4">
-        <h3 className="text-sm font-semibold text-slate-200">Settings</h3>
+        <h3 className="text-sm font-semibold text-slate-200">Voice Settings</h3>
         <button
           onClick={onClose}
           className="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-slate-400 transition-colors"
@@ -67,8 +75,51 @@ export default function VoiceSettingsPanel({
               </option>
             ))}
           </select>
+          <p className="text-[10px] text-slate-600 mt-1">Tip: "Samantha", "Google UK English Female", and "Microsoft Aria" sound most natural.</p>
         </div>
       )}
+
+      {/* Speech rate */}
+      <div className="py-3 border-b border-white/5">
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-xs text-slate-400">Speaking speed</p>
+          <span className="text-xs text-violet-300 font-medium">{speechRate.toFixed(2)}x</span>
+        </div>
+        <input
+          type="range"
+          min={0.5}
+          max={1.5}
+          step={0.05}
+          value={speechRate}
+          onChange={(e) => onSpeechRateChange(parseFloat(e.target.value))}
+          className="w-full h-1.5 rounded-full accent-violet-500 cursor-pointer"
+        />
+        <div className="flex justify-between mt-1">
+          <span className="text-[10px] text-slate-600">Slow</span>
+          <span className="text-[10px] text-slate-600">Fast</span>
+        </div>
+      </div>
+
+      {/* Speech pitch */}
+      <div className="py-3 border-b border-white/5">
+        <div className="flex items-center justify-between mb-2">
+          <p className="text-xs text-slate-400">Voice pitch</p>
+          <span className="text-xs text-violet-300 font-medium">{speechPitch.toFixed(2)}</span>
+        </div>
+        <input
+          type="range"
+          min={0.5}
+          max={2.0}
+          step={0.05}
+          value={speechPitch}
+          onChange={(e) => onSpeechPitchChange(parseFloat(e.target.value))}
+          className="w-full h-1.5 rounded-full accent-violet-500 cursor-pointer"
+        />
+        <div className="flex justify-between mt-1">
+          <span className="text-[10px] text-slate-600">Deep</span>
+          <span className="text-[10px] text-slate-600">High</span>
+        </div>
+      </div>
 
       {/* Clear chat */}
       <div className="pt-3">

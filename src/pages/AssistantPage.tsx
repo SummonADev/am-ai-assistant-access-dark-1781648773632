@@ -8,6 +8,7 @@ import ChatInput from '@/components/ChatInput';
 import StatusBar from '@/components/StatusBar';
 import TranscriptDisplay from '@/components/TranscriptDisplay';
 import VoiceSettingsPanel from '@/components/VoiceSettingsPanel';
+import MediaControls from '@/components/MediaControls';
 
 export default function AssistantPage() {
   const {
@@ -16,10 +17,14 @@ export default function AssistantPage() {
     isMuted,
     selectedVoice,
     availableVoices,
+    speechRate,
+    speechPitch,
     sendMessage,
     clearChat,
     toggleMute,
     setSelectedVoice,
+    setSpeechRate,
+    setSpeechPitch,
   } = useAssistant();
 
   const {
@@ -71,7 +76,6 @@ export default function AssistantPage() {
       {/* Header */}
       <header className="flex items-center justify-between px-6 py-4 border-b border-white/5 flex-shrink-0">
         <div className="flex items-center gap-3">
-          {/* Logo */}
           <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-700 flex items-center justify-center glow">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <circle cx="12" cy="12" r="3" />
@@ -118,16 +122,20 @@ export default function AssistantPage() {
                 onSelectVoice={setSelectedVoice}
                 onClearChat={clearChat}
                 onClose={() => setShowSettings(false)}
+                speechRate={speechRate}
+                speechPitch={speechPitch}
+                onSpeechRateChange={setSpeechRate}
+                onSpeechPitchChange={setSpeechPitch}
               />
             )}
           </div>
         </div>
       </header>
 
-      {/* Main content: split into orb + chat */}
+      {/* Main content */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Left panel — Voice Orb */}
-        <div className="w-72 flex-shrink-0 flex flex-col items-center justify-center gap-6 border-r border-white/5 p-6 bg-dark-surface/50">
+        {/* Left panel */}
+        <div className="w-72 flex-shrink-0 flex flex-col items-center gap-4 border-r border-white/5 p-4 bg-dark-surface/50 overflow-y-auto">
           <VoiceOrb state={state} isListening={isListening} onClick={handleOrbClick} />
 
           <TranscriptDisplay
@@ -136,14 +144,19 @@ export default function AssistantPage() {
             isListening={isListening}
           />
 
-          {/* Feature hints */}
-          <div className="w-full space-y-2">
-            <p className="text-[10px] text-slate-600 uppercase tracking-widest font-semibold text-center mb-3">Voice commands</p>
+          {/* Media Controls */}
+          <MediaControls onCommand={sendMessage} />
+
+          {/* Voice command hints */}
+          <div className="w-full space-y-1.5">
+            <p className="text-[10px] text-slate-600 uppercase tracking-widest font-semibold text-center mb-2">Voice commands</p>
             {[
+              { emoji: '🎵', text: 'Play [song] on YouTube' },
+              { emoji: '🎶', text: 'Play [song] on Spotify' },
+              { emoji: '⏭️', text: 'Next track' },
               { emoji: '🔍', text: 'Search [anything]' },
               { emoji: '🌐', text: 'Go to [website]' },
               { emoji: '🕐', text: 'What time is it?' },
-              { emoji: '📰', text: 'Show me news' },
               { emoji: '😄', text: 'Tell me a joke' },
               { emoji: '🧹', text: 'Clear chat' },
             ].map(({ emoji, text }) => (
@@ -161,7 +174,7 @@ export default function AssistantPage() {
           {!isSupported && (
             <div className="w-full bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 text-center">
               <p className="text-amber-400 text-xs">
-                Voice input not supported in this browser. Use Chrome or Edge for full features.
+                Voice input not supported in this browser. Use Chrome or Edge for the full experience.
               </p>
             </div>
           )}
@@ -169,7 +182,6 @@ export default function AssistantPage() {
 
         {/* Right panel — Chat */}
         <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Messages */}
           <div className="flex-1 overflow-y-auto chat-scroll p-5 space-y-4">
             {messages.map((msg) => (
               <ChatMessage key={msg.id} message={msg} />
@@ -177,7 +189,6 @@ export default function AssistantPage() {
             <div ref={chatEndRef} />
           </div>
 
-          {/* Input */}
           <div className="p-4 border-t border-white/5 flex-shrink-0">
             <ChatInput
               onSend={sendMessage}

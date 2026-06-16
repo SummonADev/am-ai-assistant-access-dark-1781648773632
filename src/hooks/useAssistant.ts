@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { Message, AssistantState } from '@/types';
 import { processCommand, generateSmartReply } from '@/lib/commandProcessor';
-import { speakText, stopSpeaking, getAvailableVoices } from '@/lib/speechUtils';
+import { speakText, stopSpeaking, getAvailableVoices, pickBestVoice } from '@/lib/speechUtils';
 import { saveMessages, loadMessages, clearMessages } from '@/lib/storage';
 
 type UseAssistantReturn = {
@@ -10,10 +10,14 @@ type UseAssistantReturn = {
   isMuted: boolean;
   selectedVoice: SpeechSynthesisVoice | null;
   availableVoices: SpeechSynthesisVoice[];
+  speechRate: number;
+  speechPitch: number;
   sendMessage: (text: string) => void;
   clearChat: () => void;
   toggleMute: () => void;
   setSelectedVoice: (voice: SpeechSynthesisVoice | null) => void;
+  setSpeechRate: (rate: number) => void;
+  setSpeechPitch: (pitch: number) => void;
 };
 
 function generateId(): string {
@@ -28,7 +32,7 @@ export function useAssistant(): UseAssistantReturn {
       {
         id: generateId(),
         role: 'assistant',
-        content: "Hi! I'm ARIA, your AI voice assistant. I can hear your voice commands, answer questions, search the web, and more. Click the microphone and start talking!",
+        content: "Hey! I'm ARIA, your personal AI assistant. I have a human-like voice and I can control your media, search the web, answer questions, and much more. Click the mic and start talking!",
         timestamp: new Date(),
       },
     ];
@@ -38,15 +42,15 @@ export function useAssistant(): UseAssistantReturn {
   const [isMuted, setIsMuted] = useState<boolean>(false);
   const [selectedVoice, setSelectedVoice] = useState<SpeechSynthesisVoice | null>(null);
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [speechRate, setSpeechRate] = useState<number>(0.92);
+  const [speechPitch, setSpeechPitch] = useState<number>(1.1);
   const processingRef = useRef<boolean>(false);
 
   useEffect(() => {
     const loadVoices = () => {
       const voices = getAvailableVoices();
       setAvailableVoices(voices);
-      const preferred = voices.find(
-        (v) => v.lang === 'en-US' && (v.name.includes('Google') || v.name.includes('Samantha') || v.name.includes('Karen'))
-      ) || voices.find((v) => v.lang === 'en-US') || voices[0] || null;
+      const preferred = pickBestVoice(voices);
       setSelectedVoice(preferred);
     };
 
@@ -90,7 +94,7 @@ export function useAssistant(): UseAssistantReturn {
               {
                 id: generateId(),
                 role: 'assistant',
-                content: 'Chat cleared! How can I help you?',
+                content: 'Chat cleared! Ready and listening — what can I do for you?',
                 timestamp: new Date(),
               },
             ]);
@@ -119,15 +123,17 @@ export function useAssistant(): UseAssistantReturn {
               setState('idle');
               processingRef.current = false;
             },
-            selectedVoice
+            selectedVoice,
+            speechRate,
+            speechPitch
           );
         } else {
           setState('idle');
           processingRef.current = false;
         }
-      }, 800 + Math.random() * 400);
+      }, 600 + Math.random() * 300);
     },
-    [addMessage, isMuted, selectedVoice]
+    [addMessage, isMuted, selectedVoice, speechRate, speechPitch]
   );
 
   const clearChat = useCallback(() => {
@@ -137,7 +143,7 @@ export function useAssistant(): UseAssistantReturn {
       {
         id: generateId(),
         role: 'assistant',
-        content: "Chat cleared! I'm ARIA, ready to assist you. What can I do for you?",
+        content: "Chat cleared! I'm ARIA, ready to assist. What can I do for you?",
         timestamp: new Date(),
       },
     ]);
@@ -158,9 +164,13 @@ export function useAssistant(): UseAssistantReturn {
     isMuted,
     selectedVoice,
     availableVoices,
+    speechRate,
+    speechPitch,
     sendMessage,
     clearChat,
     toggleMute,
     setSelectedVoice,
+    setSpeechRate,
+    setSpeechPitch,
   };
 }
