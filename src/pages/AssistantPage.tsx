@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Settings, Mic, MicOff } from 'lucide-react';
+import { Settings, Mic, MicOff, Globe } from 'lucide-react';
 import { useAssistant } from '@/hooks/useAssistant';
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
 import VoiceOrb from '@/components/VoiceOrb';
@@ -9,6 +9,8 @@ import StatusBar from '@/components/StatusBar';
 import TranscriptDisplay from '@/components/TranscriptDisplay';
 import VoiceSettingsPanel from '@/components/VoiceSettingsPanel';
 import MediaControls from '@/components/MediaControls';
+import WebAccessPanel from '@/components/WebAccessPanel';
+import ARIAMindPanel from '@/components/ARIAMindPanel';
 
 export default function AssistantPage() {
   const {
@@ -38,6 +40,7 @@ export default function AssistantPage() {
   } = useSpeechRecognition();
 
   const [showSettings, setShowSettings] = useState<boolean>(false);
+  const [showWebPanel, setShowWebPanel] = useState<boolean>(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const prevTranscriptRef = useRef<string>('');
 
@@ -56,19 +59,13 @@ export default function AssistantPage() {
   }, [transcript, isListening, sendMessage, resetTranscript]);
 
   const handleOrbClick = () => {
-    if (isListening) {
-      stopListening();
-    } else {
-      startListening();
-    }
+    if (isListening) stopListening();
+    else startListening();
   };
 
   const handleToggleMic = () => {
-    if (isListening) {
-      stopListening();
-    } else {
-      startListening();
-    }
+    if (isListening) stopListening();
+    else startListening();
   };
 
   return (
@@ -84,12 +81,25 @@ export default function AssistantPage() {
           </div>
           <div>
             <h1 className="text-base font-bold text-white glow-text">ARIA</h1>
-            <p className="text-[10px] text-slate-500 -mt-0.5">AI Voice Assistant</p>
+            <p className="text-[10px] text-slate-500 -mt-0.5">Adaptive Reasoning Intelligence Assistant</p>
           </div>
         </div>
 
         <div className="flex items-center gap-3">
           <StatusBar state={state} isListening={isListening} isSpeechSupported={isSupported} />
+
+          {/* Web panel toggle */}
+          <button
+            onClick={() => setShowWebPanel((s) => !s)}
+            className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all border ${
+              showWebPanel
+                ? 'bg-violet-500/20 text-violet-400 border-violet-500/30'
+                : 'bg-white/5 text-slate-400 hover:bg-white/10 border-white/10'
+            }`}
+            title="Web access panel"
+          >
+            <Globe size={15} />
+          </button>
 
           <button
             onClick={handleToggleMic}
@@ -135,7 +145,7 @@ export default function AssistantPage() {
       {/* Main content */}
       <div className="flex flex-1 overflow-hidden">
         {/* Left panel */}
-        <div className="w-72 flex-shrink-0 flex flex-col items-center gap-4 border-r border-white/5 p-4 bg-dark-surface/50 overflow-y-auto">
+        <div className="w-72 flex-shrink-0 flex flex-col items-center gap-3 border-r border-white/5 p-3 bg-dark-surface/50 overflow-y-auto">
           <VoiceOrb state={state} isListening={isListening} onClick={handleOrbClick} />
 
           <TranscriptDisplay
@@ -144,26 +154,32 @@ export default function AssistantPage() {
             isListening={isListening}
           />
 
+          {/* ARIA's Mind Panel */}
+          <ARIAMindPanel />
+
           {/* Media Controls */}
           <MediaControls onCommand={sendMessage} />
 
+          {/* Web Access Panel */}
+          <WebAccessPanel onCommand={sendMessage} />
+
           {/* Voice command hints */}
-          <div className="w-full space-y-1.5">
-            <p className="text-[10px] text-slate-600 uppercase tracking-widest font-semibold text-center mb-2">Voice commands</p>
+          <div className="w-full space-y-1">
+            <p className="text-[10px] text-slate-600 uppercase tracking-widest font-semibold text-center mb-1.5">Quick commands</p>
             {[
-              { emoji: '🎵', text: 'Play [song] on YouTube' },
-              { emoji: '🎶', text: 'Play [song] on Spotify' },
-              { emoji: '⏭️', text: 'Next track' },
+              { emoji: '🌐', text: 'Open YouTube' },
+              { emoji: '🎵', text: 'Play [song] on Spotify' },
               { emoji: '🔍', text: 'Search [anything]' },
-              { emoji: '🌐', text: 'Go to [website]' },
-              { emoji: '🕐', text: 'What time is it?' },
+              { emoji: '📖', text: 'Search [topic] on Wikipedia' },
+              { emoji: '💭', text: 'What do you think about AI?' },
+              { emoji: '😊', text: 'How are you feeling?' },
               { emoji: '😄', text: 'Tell me a joke' },
-              { emoji: '🧹', text: 'Clear chat' },
+              { emoji: '🛒', text: 'Buy [product]' },
             ].map(({ emoji, text }) => (
               <button
                 key={text}
                 onClick={() => sendMessage(text)}
-                className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-white/3 hover:bg-white/8 border border-white/5 hover:border-white/15 text-slate-400 hover:text-slate-300 text-xs transition-all text-left"
+                className="w-full flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/3 hover:bg-white/8 border border-white/5 hover:border-white/15 text-slate-400 hover:text-slate-300 text-xs transition-all text-left"
               >
                 <span>{emoji}</span>
                 <span>{text}</span>
@@ -174,13 +190,13 @@ export default function AssistantPage() {
           {!isSupported && (
             <div className="w-full bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 text-center">
               <p className="text-amber-400 text-xs">
-                Voice input not supported in this browser. Use Chrome or Edge for the full experience.
+                Voice input not supported. Use Chrome or Edge for the full experience.
               </p>
             </div>
           )}
         </div>
 
-        {/* Right panel — Chat */}
+        {/* Center — Chat */}
         <div className="flex-1 flex flex-col overflow-hidden">
           <div className="flex-1 overflow-y-auto chat-scroll p-5 space-y-4">
             {messages.map((msg) => (
@@ -199,6 +215,63 @@ export default function AssistantPage() {
             </p>
           </div>
         </div>
+
+        {/* Right panel — Web Access (when open) */}
+        {showWebPanel && (
+          <div className="w-72 flex-shrink-0 border-l border-white/5 bg-dark-surface/50 overflow-y-auto p-3 space-y-3">
+            <div className="flex items-center gap-2 mb-1">
+              <Globe size={14} className="text-violet-400" />
+              <h3 className="text-xs font-semibold text-slate-300">Web Access</h3>
+              <span className="ml-auto text-[9px] text-slate-600">{new URL('https://google.com').hostname && '40+ sites'}</span>
+            </div>
+
+            {/* Quick search bar */}
+            <div className="space-y-2">
+              <p className="text-[10px] text-slate-500 uppercase tracking-wider">Quick actions</p>
+              {[
+                { label: '🔍 Google Search', action: () => sendMessage('search ') },
+                { label: '📺 YouTube', action: () => sendMessage('open YouTube') },
+                { label: '🎵 Spotify', action: () => sendMessage('open Spotify') },
+                { label: '📰 News', action: () => sendMessage('open news') },
+                { label: '📧 Gmail', action: () => sendMessage('open Gmail') },
+                { label: '🗺️ Maps', action: () => sendMessage('open Google Maps') },
+                { label: '📅 Calendar', action: () => sendMessage('open Google Calendar') },
+                { label: '💬 Reddit', action: () => sendMessage('open Reddit') },
+                { label: '🐙 GitHub', action: () => sendMessage('open GitHub') },
+                { label: '🤖 ChatGPT', action: () => sendMessage('open ChatGPT') },
+              ].map(({ label, action }) => (
+                <button
+                  key={label}
+                  onClick={action}
+                  className="w-full text-left px-3 py-2 rounded-lg bg-white/3 hover:bg-white/8 border border-white/5 hover:border-white/15 text-slate-400 hover:text-slate-300 text-xs transition-all"
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-[10px] text-slate-500 uppercase tracking-wider">Voice commands</p>
+              {[
+                '"open [site name]"',
+                '"search [query]"',
+                '"search [query] on Wikipedia"',
+                '"search [query] on Reddit"',
+                '"buy [product]"',
+                '"translate [text]"',
+                '"directions to [place]"',
+                '"navigate to [url]"',
+              ].map((cmd) => (
+                <div
+                  key={cmd}
+                  className="px-3 py-1.5 rounded-lg bg-white/3 border border-white/5 text-slate-500 text-[10px] font-mono"
+                >
+                  {cmd}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

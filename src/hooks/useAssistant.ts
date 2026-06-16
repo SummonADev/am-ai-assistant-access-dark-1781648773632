@@ -3,6 +3,7 @@ import { Message, AssistantState } from '@/types';
 import { processCommand, generateSmartReply } from '@/lib/commandProcessor';
 import { speakText, stopSpeaking, getAvailableVoices, pickBestVoice } from '@/lib/speechUtils';
 import { saveMessages, loadMessages, clearMessages } from '@/lib/storage';
+import { updateMood } from '@/lib/ariaPersonality';
 
 type UseAssistantReturn = {
   messages: Message[];
@@ -32,7 +33,8 @@ export function useAssistant(): UseAssistantReturn {
       {
         id: generateId(),
         role: 'assistant',
-        content: "Hey! I'm ARIA, your personal AI assistant. I have a human-like voice and I can control your media, search the web, answer questions, and much more. Click the mic and start talking!",
+        content:
+          "Hey! I'm ARIA — Adaptive Reasoning Intelligence Assistant. I have my own mind, moods, and opinions that evolve as we talk. I can open 40+ websites, control your media, search the web, and genuinely enjoy our conversations. Click the mic or type below to get started! 🌟",
         timestamp: new Date(),
       },
     ];
@@ -53,7 +55,6 @@ export function useAssistant(): UseAssistantReturn {
       const preferred = pickBestVoice(voices);
       setSelectedVoice(preferred);
     };
-
     loadVoices();
     if ('speechSynthesis' in window) {
       window.speechSynthesis.onvoiceschanged = loadVoices;
@@ -72,6 +73,9 @@ export function useAssistant(): UseAssistantReturn {
     (text: string) => {
       if (!text.trim() || processingRef.current) return;
       processingRef.current = true;
+
+      // Update ARIA's internal mood
+      updateMood(text);
 
       const userMsg: Message = {
         id: generateId(),
@@ -94,7 +98,7 @@ export function useAssistant(): UseAssistantReturn {
               {
                 id: generateId(),
                 role: 'assistant',
-                content: 'Chat cleared! Ready and listening — what can I do for you?',
+                content: 'Chat cleared! Fresh start — what shall we explore together?',
                 timestamp: new Date(),
               },
             ]);
@@ -131,7 +135,7 @@ export function useAssistant(): UseAssistantReturn {
           setState('idle');
           processingRef.current = false;
         }
-      }, 600 + Math.random() * 300);
+      }, 500 + Math.random() * 200);
     },
     [addMessage, isMuted, selectedVoice, speechRate, speechPitch]
   );
@@ -143,7 +147,7 @@ export function useAssistant(): UseAssistantReturn {
       {
         id: generateId(),
         role: 'assistant',
-        content: "Chat cleared! I'm ARIA, ready to assist. What can I do for you?",
+        content: "Chat cleared! I'm ARIA, ready to explore the web, answer questions, and chat. What's on your mind?",
         timestamp: new Date(),
       },
     ]);
