@@ -1,111 +1,131 @@
-export function isSpeechRecognitionSupported(): boolean {
-  return 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window;
-}
+// Speech utilities — TTS + STT helpers
 
-export function isSpeechSynthesisSupported(): boolean {
-  return 'speechSynthesis' in window;
+export function isSpeechRecognitionSupported(): boolean {
+  return 'SpeechRecognition' in window || 'webkitSpeechRecognition' in window;
 }
 
 export function createRecognition(): any {
-  const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-  if (!SpeechRecognition) return null;
-  const recognition = new SpeechRecognition();
-  recognition.continuous = false;
-  recognition.interimResults = true;
+  const SR =
+    (window as any).SpeechRecognition ||
+    (window as any).webkitSpeechRecognition;
+  if (!SR) return null;
+  const recognition = new SR();
   recognition.lang = 'en-US';
+  recognition.interimResults = true;
   recognition.maxAlternatives = 1;
+  recognition.continuous = false;
   return recognition;
 }
 
-// Preferred human-like voices in order of preference
-const PREFERRED_VOICE_NAMES = [
-  'Samantha',
-  'Karen',
-  'Moira',
-  'Tessa',
-  'Fiona',
-  'Victoria',
-  'Allison',
-  'Ava',
-  'Susan',
-  'Joanna',
-  'Salli',
-  'Kimberly',
-  'Kendra',
-  'Ivy',
-  'Google US English',
-  'Google UK English Female',
-  'Microsoft Aria Online',
-  'Microsoft Jenny Online',
-  'Microsoft Zira',
-];
+// ── Voice selection ───────────────────────────────────────────────────────────
 
-export function pickBestVoice(voices: SpeechSynthesisVoice[]): SpeechSynthesisVoice | null {
-  for (const name of PREFERRED_VOICE_NAMES) {
-    const found = voices.find((v) => v.name.includes(name) && v.lang.startsWith('en'));
-    if (found) return found;
-  }
-  // Fallback: any female-sounding English voice
-  const englishFemale = voices.find(
-    (v) => v.lang.startsWith('en') && /female|woman|girl/i.test(v.name)
-  );
-  if (englishFemale) return englishFemale;
-  // Fallback: any English voice
-  const english = voices.find((v) => v.lang === 'en-US') || voices.find((v) => v.lang.startsWith('en'));
-  return english || voices[0] || null;
+export function getAvailableVoices(): SpeechSynthesisVoice[] {
+  if (!('speechSynthesis' in window)) return [];
+  return window.speechSynthesis.getVoices();
 }
+
+/**
+ * Pick the most human-sounding female voice available.
+ * Priority order:
+ * 1. Google UK English Female (very natural)
+ * 2. Google US English (Female)
+ * 3. Microsoft Zira / Aria / Jenny (Windows)
+ * 4. Samantha (macOS)
+ * 5. Any English female voice
+ * 6. Any English voice
+ * 7. First available voice
+ */
+export function pickBestVoice(
+  voices: SpeechSynthesisVoice[]
+): SpeechSynthesisVoice | null {
+  if (!voices.length) return null;
+
+  const priorityNames = [
+    'Google UK English Female',
+    'Google US English',
+    'Microsoft Aria Online (Natural)',
+    'Microsoft Aria - English (United States)',
+    'Microsoft Jenny Online (Natural)',
+    'Microsoft Jenny - English (United States)',
+    'Microsoft Zira - English (United States)',
+    'Samantha',
+    'Karen',
+    'Moira',
+    'Tessa',
+  ];
+
+  for (const name of priorityNames) {
+    const match = voices.find((v) =>
+      v.name.toLowerCase().includes(name.toLowerCase())
+    );
+    if (match) return match;
+  }
+
+  // Any English female
+  const engFemale = voices.find(
+    (v) =>
+      v.lang.startsWith('en') &&
+      (v.name.toLowerCase().includes('female') ||
+        v.name.toLowerCase().includes('woman') ||
+        v.name.toLowerCase().includes('girl'))
+  );
+  if (engFemale) return engFemale;
+
+  // Any English
+  const eng = voices.find((v) => v.lang.startsWith('en'));
+  if (eng) return eng;
+
+  return voices[0];
+}
+
+// ── Text to Speech ────────────────────────────────────────────────────────────
 
 export function speakText(
   text: string,
   onStart?: () => void,
   onEnd?: () => void,
   voice?: SpeechSynthesisVoice | null,
-  rate?: number,
-  pitch?: number
+  rate: number = 0.88,
+  pitch: number = 1.15
 ): void {
-  if (!isSpeechSynthesisSupported()) return;
+  if (!('speechSynthesis' in window)) {
+    onEnd?.();
+    return;
+  }
+
+  // Cancel any ongoing speech
   window.speechSynthesis.cancel();
 
-  // Split long text into sentences for more natural delivery
-  const sentences = text.match(/[^.!?]+[.!?]*/g) || [text];
+  // Strip markdown-like symbols for cleaner TTS
+  const cleanText = text
+    .replace(/[*_`~#]/g, '')
+    .replace(/\n+/g, ' ')
+    .replace(/https?:\/\/\S+/g, 'link')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 500); // cap to prevent very long utterances
 
-  let index = 0;
-  const speakNext = () => {
-    if (index >= sentences.length) {
-      if (onEnd) onEnd();
-      return;
-    }
-    const sentence = sentences[index].trim();
-    if (!sentence) { index++; speakNext(); return; }
+  const utterance = new SpeechSynthesisUtterance(cleanText);
 
-    const utterance = new SpeechSynthesisUtterance(sentence);
-    utterance.rate = rate ?? 0.92;
-    utterance.pitch = pitch ?? 1.1;
-    utterance.volume = 1;
-    if (voice) utterance.voice = voice;
+  if (voice) utterance.voice = voice;
+  utterance.rate = rate;
+  utterance.pitch = pitch;
+  utterance.volume = 1;
+  // Slight pause hint via lang
+  utterance.lang = voice?.lang || 'en-US';
 
-    if (index === 0 && onStart) utterance.onstart = onStart;
-    utterance.onend = () => {
-      index++;
-      speakNext();
-    };
-    utterance.onerror = () => {
-      index++;
-      speakNext();
-    };
+  utterance.onstart = () => onStart?.();
+  utterance.onend = () => onEnd?.();
+  utterance.onerror = () => onEnd?.();
+
+  // Safari workaround — slight delay
+  setTimeout(() => {
     window.speechSynthesis.speak(utterance);
-  };
-
-  speakNext();
+  }, 50);
 }
 
 export function stopSpeaking(): void {
-  if (isSpeechSynthesisSupported()) {
+  if ('speechSynthesis' in window) {
     window.speechSynthesis.cancel();
   }
-}
-
-export function getAvailableVoices(): SpeechSynthesisVoice[] {
-  if (!isSpeechSynthesisSupported()) return [];
-  return window.speechSynthesis.getVoices();
 }

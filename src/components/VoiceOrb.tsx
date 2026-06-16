@@ -4,10 +4,11 @@ import { AssistantState } from '@/types';
 type VoiceOrbProps = {
   state: AssistantState;
   isListening: boolean;
+  isWakeWordActive: boolean;
   onClick: () => void;
 };
 
-export default function VoiceOrb({ state, isListening, onClick }: VoiceOrbProps) {
+export default function VoiceOrb({ state, isListening, isWakeWordActive, onClick }: VoiceOrbProps) {
   const active = isListening || state === 'speaking' || state === 'thinking';
 
   return (
@@ -59,11 +60,29 @@ export default function VoiceOrb({ state, isListening, onClick }: VoiceOrbProps)
             ? 'bg-violet-500/20 text-violet-300 border border-violet-500/40'
             : state === 'thinking'
             ? 'bg-sky-500/20 text-sky-300 border border-sky-500/40'
+            : isWakeWordActive
+            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
             : 'bg-white/5 text-slate-400 border border-white/10'
         )}
       >
-        {isListening ? 'Listening...' : state === 'thinking' ? 'Thinking...' : state === 'speaking' ? 'Speaking...' : 'Tap to speak'}
+        {isListening
+          ? 'Listening...'
+          : state === 'thinking'
+          ? 'Thinking...'
+          : state === 'speaking'
+          ? 'Speaking...'
+          : isWakeWordActive
+          ? 'Awake!'
+          : 'Say "Hey ARIA"'}
       </div>
+
+      {/* Wake word hint */}
+      {!isListening && state === 'idle' && !isWakeWordActive && (
+        <p className="text-[10px] text-slate-600 text-center leading-relaxed">
+          Always listening for<br />
+          <span className="text-violet-400 font-semibold">"Hey ARIA"</span>
+        </p>
+      )}
     </div>
   );
 }

@@ -34,7 +34,7 @@ export function useAssistant(): UseAssistantReturn {
         id: generateId(),
         role: 'assistant',
         content:
-          "Hey! I'm ARIA — Adaptive Reasoning Intelligence Assistant. I have my own mind, moods, and opinions that evolve as we talk. I can open 40+ websites, control your media, search the web, and genuinely enjoy our conversations. Click the mic or type below to get started! 🌟",
+          "Hey! I'm ARIA — Adaptive Reasoning Intelligence Assistant. I'm always listening — just say \"Hey ARIA\" to wake me up! I can open YouTube, Amazon, Spotify, and 40+ more sites. I can control your media, search the web, and genuinely love our conversations. Try saying \"Hey ARIA, open YouTube\" or just type below! 🌟",
         timestamp: new Date(),
       },
     ];
@@ -44,8 +44,9 @@ export function useAssistant(): UseAssistantReturn {
   const [isMuted, setIsMuted] = useState<boolean>(false);
   const [selectedVoice, setSelectedVoice] = useState<SpeechSynthesisVoice | null>(null);
   const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([]);
-  const [speechRate, setSpeechRate] = useState<number>(0.92);
-  const [speechPitch, setSpeechPitch] = useState<number>(1.1);
+  // Slightly slower rate and higher pitch for a more human-like, warm female voice
+  const [speechRate, setSpeechRate] = useState<number>(0.88);
+  const [speechPitch, setSpeechPitch] = useState<number>(1.15);
   const processingRef = useRef<boolean>(false);
 
   useEffect(() => {
@@ -98,7 +99,7 @@ export function useAssistant(): UseAssistantReturn {
               {
                 id: generateId(),
                 role: 'assistant',
-                content: 'Chat cleared! Fresh start — what shall we explore together?',
+                content: 'Chat cleared! Fresh start — just say "Hey ARIA" or type to get going again!',
                 timestamp: new Date(),
               },
             ]);
@@ -147,7 +148,7 @@ export function useAssistant(): UseAssistantReturn {
       {
         id: generateId(),
         role: 'assistant',
-        content: "Chat cleared! I'm ARIA, ready to explore the web, answer questions, and chat. What's on your mind?",
+        content: "Chat cleared! I'm ARIA — just say \"Hey ARIA\" to wake me up anytime. What shall we explore?",
         timestamp: new Date(),
       },
     ]);
