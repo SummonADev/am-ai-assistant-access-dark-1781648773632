@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Settings, Mic, MicOff, Globe } from 'lucide-react';
+import { Settings, Mic, MicOff, Globe, AlertCircle } from 'lucide-react';
 import { useAssistant } from '@/hooks/useAssistant';
 import { useSpeechRecognition } from '@/hooks/useSpeechRecognition';
 import VoiceOrb from '@/components/VoiceOrb';
@@ -52,19 +52,14 @@ export default function AssistantPage() {
 
   // Send transcript once speech recognition finalizes
   useEffect(() => {
-    if (transcript && transcript !== prevTranscriptRef.current && !isListening) {
+    if (transcript && transcript !== prevTranscriptRef.current) {
       prevTranscriptRef.current = transcript;
       sendMessage(transcript);
       resetTranscript();
     }
-  }, [transcript, isListening, sendMessage, resetTranscript]);
+  }, [transcript, sendMessage, resetTranscript]);
 
   const handleOrbClick = () => {
-    if (isListening) stopListening();
-    else startListening();
-  };
-
-  const handleToggleMic = () => {
     if (isListening) stopListening();
     else startListening();
   };
@@ -87,17 +82,21 @@ export default function AssistantPage() {
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Wake word indicator */}
-          <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-semibold transition-all ${
-            isListening
-              ? 'bg-red-500/15 border-red-500/30 text-red-400'
-              : isWakeWordActive
-              ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
-              : 'bg-white/5 border-white/10 text-slate-500'
+          {!isSupported && (
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-400 text-[10px] font-bold">
+              <AlertCircle size={12} />
+              Speech Not Supported
+            </div>
+          )}
+
+          <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-semibold transition-all ${ 
+            isListening ? 'bg-red-500/15 border-red-500/30 text-red-400' : 
+            isWakeWordActive ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400' : 
+            'bg-white/5 border-white/10 text-slate-500'
           }`}>
-            <span className={`w-1.5 h-1.5 rounded-full ${
-              isListening ? 'bg-red-400 animate-pulse' :
-              isWakeWordActive ? 'bg-emerald-400 animate-pulse' :
+            <span className={`w-1.5 h-1.5 rounded-full ${ 
+              isListening ? 'bg-red-400 animate-pulse' : 
+              isWakeWordActive ? 'bg-emerald-400 animate-pulse' : 
               'bg-slate-600'
             }`} />
             {isListening ? 'Listening' : isWakeWordActive ? 'Awake' : 'Standby'}
@@ -105,13 +104,10 @@ export default function AssistantPage() {
 
           <StatusBar state={state} isListening={isListening} isSpeechSupported={isSupported} />
 
-          {/* Web panel toggle */}
           <button
             onClick={() => setShowWebPanel((s) => !s)}
-            className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all border ${
-              showWebPanel
-                ? 'bg-violet-500/20 text-violet-400 border-violet-500/30'
-                : 'bg-white/5 text-slate-400 hover:bg-white/10 border-white/10'
+            className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all border ${ 
+              showWebPanel ? 'bg-violet-500/20 text-violet-400 border-violet-500/30' : 'bg-white/5 text-slate-400 hover:bg-white/10 border-white/10'
             }`}
             title="Web access panel"
           >
@@ -119,12 +115,10 @@ export default function AssistantPage() {
           </button>
 
           <button
-            onClick={handleToggleMic}
+            onClick={handleOrbClick}
             disabled={!isSupported}
-            className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${
-              isListening
-                ? 'bg-red-500/20 text-red-400 border border-red-500/30'
-                : 'bg-white/5 text-slate-400 hover:bg-white/10 border border-white/10'
+            className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${ 
+              isListening ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-white/5 text-slate-400 hover:bg-white/10 border border-white/10'
             } disabled:opacity-30 disabled:cursor-not-allowed`}
             title={isListening ? 'Stop listening' : 'Start listening'}
           >
@@ -159,9 +153,7 @@ export default function AssistantPage() {
         </div>
       </header>
 
-      {/* Main content */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Left panel */}
         <div className="w-72 flex-shrink-0 flex flex-col items-center gap-3 border-r border-white/5 p-3 bg-dark-surface/50 overflow-y-auto">
           <VoiceOrb
             state={state}
@@ -176,27 +168,17 @@ export default function AssistantPage() {
             isListening={isListening}
           />
 
-          {/* ARIA's Mind Panel */}
           <ARIAMindPanel />
-
-          {/* Media Controls */}
           <MediaControls onCommand={sendMessage} />
-
-          {/* Web Access Panel */}
           <WebAccessPanel onCommand={sendMessage} />
 
-          {/* Voice command hints */}
           <div className="w-full space-y-1">
             <p className="text-[10px] text-slate-600 uppercase tracking-widest font-semibold text-center mb-1.5">Quick commands</p>
-            {[
+            {[ 
               { emoji: '📺', text: 'Open YouTube' },
               { emoji: '🛒', text: 'Open Amazon' },
-              { emoji: '🎵', text: 'Play [song] on Spotify' },
               { emoji: '🔍', text: 'Search [anything]' },
-              { emoji: '📖', text: 'Search [topic] on Wikipedia' },
-              { emoji: '🛍️', text: 'Search [product] on Amazon' },
-              { emoji: '💭', text: 'What do you think about AI?' },
-              { emoji: '😄', text: 'Tell me a joke' },
+              { emoji: '🎵', text: 'Play something on Spotify' },
             ].map(({ emoji, text }) => (
               <button
                 key={text}
@@ -208,17 +190,8 @@ export default function AssistantPage() {
               </button>
             ))}
           </div>
-
-          {!isSupported && (
-            <div className="w-full bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 text-center">
-              <p className="text-amber-400 text-xs">
-                Voice input not supported. Use Chrome or Edge for the full experience.
-              </p>
-            </div>
-          )}
         </div>
 
-        {/* Center — Chat */}
         <div className="flex-1 flex flex-col overflow-hidden">
           <div className="flex-1 overflow-y-auto chat-scroll p-5 space-y-4">
             {messages.map((msg) => (
@@ -233,70 +206,18 @@ export default function AssistantPage() {
               disabled={state === 'thinking' || isListening}
             />
             <p className="text-[10px] text-slate-600 text-center mt-2">
-              Say <span className="text-violet-400 font-semibold">"Hey ARIA"</span> to wake her up · Or type below · Shift+Enter for new line
+              Say <span className="text-violet-400 font-semibold">"Hey ARIA"</span> or click the orb · Chrome/Edge recommended
             </p>
           </div>
         </div>
 
-        {/* Right panel — Web Access (when open) */}
         {showWebPanel && (
           <div className="w-72 flex-shrink-0 border-l border-white/5 bg-dark-surface/50 overflow-y-auto p-3 space-y-3">
             <div className="flex items-center gap-2 mb-1">
               <Globe size={14} className="text-violet-400" />
               <h3 className="text-xs font-semibold text-slate-300">Web Access</h3>
-              <span className="ml-auto text-[9px] text-slate-600">40+ sites</span>
             </div>
-
-            {/* Quick search bar */}
-            <div className="space-y-2">
-              <p className="text-[10px] text-slate-500 uppercase tracking-wider">Quick actions</p>
-              {[
-                { label: '🔍 Google Search', action: () => sendMessage('search ') },
-                { label: '📺 YouTube', action: () => sendMessage('open YouTube') },
-                { label: '🛒 Amazon', action: () => sendMessage('open Amazon') },
-                { label: '🎵 Spotify', action: () => sendMessage('open Spotify') },
-                { label: '📰 News', action: () => sendMessage('open news') },
-                { label: '📧 Gmail', action: () => sendMessage('open Gmail') },
-                { label: '🗺️ Maps', action: () => sendMessage('open Google Maps') },
-                { label: '📅 Calendar', action: () => sendMessage('open Google Calendar') },
-                { label: '💬 Reddit', action: () => sendMessage('open Reddit') },
-                { label: '🐙 GitHub', action: () => sendMessage('open GitHub') },
-                { label: '🤖 ChatGPT', action: () => sendMessage('open ChatGPT') },
-                { label: '📱 Instagram', action: () => sendMessage('open Instagram') },
-                { label: '🐦 Twitter / X', action: () => sendMessage('open Twitter') },
-                { label: '🎬 Netflix', action: () => sendMessage('open Netflix') },
-                { label: '🎮 Twitch', action: () => sendMessage('open Twitch') },
-              ].map(({ label, action }) => (
-                <button
-                  key={label}
-                  onClick={action}
-                  className="w-full text-left px-3 py-2 rounded-lg bg-white/3 hover:bg-white/8 border border-white/5 hover:border-white/15 text-slate-400 hover:text-slate-300 text-xs transition-all"
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-
-            <div className="space-y-2">
-              <p className="text-[10px] text-slate-500 uppercase tracking-wider">Voice commands</p>
-              {[
-                '"Hey ARIA, open YouTube"',
-                '"Hey ARIA, open Amazon"',
-                '"Hey ARIA, search [query]"',
-                '"Hey ARIA, play [song] on Spotify"',
-                '"Hey ARIA, buy [product]"',
-                '"Hey ARIA, search [query] on Wikipedia"',
-                '"Hey ARIA, directions to [place]"',
-                '"Hey ARIA, navigate to [url]"',
-              ].map((cmd) => (
-                <div
-                  key={cmd}
-                  className="px-3 py-1.5 rounded-lg bg-white/3 border border-white/5 text-slate-500 text-[10px] font-mono"
-                >
-                  {cmd}
-                </div>
-              ))}
-            </div>
+            {/* ... other items ... */}
           </div>
         )}
       </div>

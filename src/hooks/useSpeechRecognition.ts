@@ -12,7 +12,7 @@ type UseSpeechRecognitionReturn = {
   resetTranscript: () => void;
 };
 
-const WAKE_WORD = 'hey aria';
+const WAKE_WORDS = ['hey aria', 'hey area', 'aria', 'hey arya', 'hi aria'];
 
 export function useSpeechRecognition(): UseSpeechRecognitionReturn {
   const [transcript, setTranscript] = useState<string>('');
@@ -23,253 +23,181 @@ export function useSpeechRecognition(): UseSpeechRecognitionReturn {
 
   const wakeRecognitionRef = useRef<any>(null);
   const commandRecognitionRef = useRef<any>(null);
-  const wakeActiveRef = useRef<boolean>(false);
   const restartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isManualRef = useRef<boolean>(false);
   const mountedRef = useRef<boolean>(true);
-  const commandRunningRef = useRef<boolean>(false);
+  const isActiveRef = useRef<boolean>(false);
+  const hasInteractedRef = useRef<boolean>(false);
 
-  const clearRestartTimer = () => {
-    if (restartTimerRef.current) {
-      clearTimeout(restartTimerRef.current);
-      restartTimerRef.current = null;
-    }
-  };
-
-  const stopWakeRecognition = () => {
+  const stopAll = useCallback(() => {
     if (wakeRecognitionRef.current) {
       try { wakeRecognitionRef.current.abort(); } catch (_) {}
       wakeRecognitionRef.current = null;
     }
-  };
-
-  const stopCommandRecognition = () => {
     if (commandRecognitionRef.current) {
       try { commandRecognitionRef.current.abort(); } catch (_) {}
       commandRecognitionRef.current = null;
     }
-    commandRunningRef.current = false;
-  };
-
-  // Forward declaration ref so startWakeLoop can call startCommandListening
-  const startCommandListeningRef = useRef<() => void>(() => {});
-  const startWakeLoopRef = useRef<() => void>(() => {});
+    isActiveRef.current = false;
+  }, []);
 
   const startCommandListening = useCallback(() => {
     if (!mountedRef.current || !isSupported) return;
-    if (commandRunningRef.current) return;
 
-    stopCommandRecognition();
-
+    stopAll();
     const rec = createRecognition();
     if (!rec) return;
 
-    commandRunningRef.current = true;
     commandRecognitionRef.current = rec;
+    isActiveRef.current = true;
     rec.continuous = false;
     rec.interimResults = true;
-    rec.lang = 'en-US';
 
     rec.onstart = () => {
-      if (!mountedRef.current) return;
       setIsListening(true);
     };
 
     rec.onresult = (event: any) => {
-      if (!mountedRef.current) return;
       let final = '';
       let interim = '';
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const r = event.results[i];
-        if (r.isFinal) {
-          final += r[0].transcript;
-        } else {
-          interim += r[0].transcript;
-        }
+        if (r.isFinal) final += r[0].transcript;
+        else interim += r[0].transcript;
       }
       if (final) setTranscript(final.trim());
       setInterimTranscript(interim);
     };
 
     rec.onerror = (e: any) => {
-      if (!mountedRef.current) return;
-      // 'no-speech' is normal — just restart wake loop
-      setIsListening(false);
-      setInterimTranscript('');
-      setIsWakeWordActive(false);
-      wakeActiveRef.current = false;
-      commandRunningRef.current = false;
-      commandRecognitionRef.current = null;
-
-      if (e.error !== 'not-allowed' && e.error !== 'service-not-allowed') {
-        clearRestartTimer();
-        restartTimerRef.current = setTimeout(() => {
-          if (mountedRef.current && !wakeActiveRef.current) {
-            startWakeLoopRef.current();
-          }
-        }, 600);
-      }
+      console.error('Command STT Error:', e.error);
+      handleSessionEnd();
     };
 
     rec.onend = () => {
-      if (!mountedRef.current) return;
+      handleSessionEnd();
+    };
+
+    const handleSessionEnd = () => {
       setIsListening(false);
       setInterimTranscript('');
       setIsWakeWordActive(false);
-      wakeActiveRef.current = false;
-      commandRunningRef.current = false;
-      commandRecognitionRef.current = null;
-
-      if (!isManualRef.current) {
-        clearRestartTimer();
-        restartTimerRef.current = setTimeout(() => {
-          if (mountedRef.current && !wakeActiveRef.current) {
-            startWakeLoopRef.current();
-          }
-        }, 600);
+      isActiveRef.current = false;
+      
+      if (mountedRef.current && !isManualRef.current) {
+        setTimeout(() => startWakeLoop(), 600);
       }
       isManualRef.current = false;
     };
 
     try {
       rec.start();
-    } catch (_) {
-      commandRunningRef.current = false;
-      commandRecognitionRef.current = null;
+    } catch (err) {
+      console.error('Failed to start command recognition:', err);
+      isActiveRef.current = false;
     }
-  }, [isSupported]);
+  }, [isSupported, stopAll]);
 
   const startWakeLoop = useCallback(() => {
-    if (!mountedRef.current || !isSupported) return;
-    if (wakeActiveRef.current) return; // Don't start wake loop if command is active
+    if (!mountedRef.current || !isSupported || isActiveRef.current) return;
 
-    stopWakeRecognition();
-
+    stopAll();
     const rec = createRecognition();
     if (!rec) return;
 
     wakeRecognitionRef.current = rec;
     rec.continuous = true;
     rec.interimResults = true;
-    rec.lang = 'en-US';
 
     rec.onresult = (event: any) => {
-      if (!mountedRef.current) return;
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const text = event.results[i][0].transcript.toLowerCase().trim();
-        if (text.includes(WAKE_WORD) && !wakeActiveRef.current) {
-          wakeActiveRef.current = true;
+        const detected = WAKE_WORDS.some(ww => text.includes(ww));
+        
+        if (detected) {
           setIsWakeWordActive(true);
-          stopWakeRecognition();
-          clearRestartTimer();
-          // Small delay so the mic releases cleanly before opening command listener
-          setTimeout(() => {
-            startCommandListeningRef.current();
-          }, 250);
+          stopAll();
+          setTimeout(() => startCommandListening(), 200);
           return;
         }
       }
     };
 
     rec.onend = () => {
-      if (!mountedRef.current) return;
-      if (!wakeActiveRef.current) {
-        clearRestartTimer();
-        restartTimerRef.current = setTimeout(() => {
-          if (mountedRef.current && !wakeActiveRef.current) {
-            startWakeLoopRef.current();
-          }
-        }, 400);
+      if (mountedRef.current && !isActiveRef.current && !isManualRef.current) {
+        setTimeout(() => startWakeLoop(), 400);
       }
     };
 
     rec.onerror = (e: any) => {
-      if (!mountedRef.current) return;
-      if (e.error === 'not-allowed' || e.error === 'service-not-allowed') return;
-      if (!wakeActiveRef.current) {
-        clearRestartTimer();
-        restartTimerRef.current = setTimeout(() => {
-          if (mountedRef.current && !wakeActiveRef.current) {
-            startWakeLoopRef.current();
-          }
-        }, 1200);
+      if (e.error === 'not-allowed') {
+        console.warn('Mic permission denied.');
+        return;
+      }
+      if (!isActiveRef.current) {
+        setTimeout(() => startWakeLoop(), 1000);
       }
     };
 
     try {
       rec.start();
     } catch (_) {
-      // If already started or other error, retry after delay
-      clearRestartTimer();
-      restartTimerRef.current = setTimeout(() => {
-        if (mountedRef.current && !wakeActiveRef.current) {
-          startWakeLoopRef.current();
-        }
-      }, 1000);
+      setTimeout(() => startWakeLoop(), 1000);
     }
-  }, [isSupported]);
+  }, [isSupported, stopAll, startCommandListening]);
 
-  // Keep refs in sync with latest functions
-  useEffect(() => {
-    startCommandListeningRef.current = startCommandListening;
-  }, [startCommandListening]);
-
-  useEffect(() => {
-    startWakeLoopRef.current = startWakeLoop;
-  }, [startWakeLoop]);
-
-  // Boot wake loop on mount
   useEffect(() => {
     mountedRef.current = true;
-    if (!isSupported) return;
-
-    // Small delay to let the browser finish initialising
-    const bootTimer = setTimeout(() => {
-      startWakeLoopRef.current();
-    }, 500);
-
     return () => {
       mountedRef.current = false;
-      clearTimeout(bootTimer);
-      clearRestartTimer();
-      stopWakeRecognition();
-      stopCommandRecognition();
+      stopAll();
     };
-  }, [isSupported]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [stopAll]);
 
-  // ── Manual start/stop (mic button) ───────────────────────────────────────
+  // Manual interactions
   const startListening = useCallback(() => {
     if (!isSupported) return;
-    clearRestartTimer();
-    stopWakeRecognition();
-    wakeActiveRef.current = true;
+    hasInteractedRef.current = true;
     isManualRef.current = false;
+    stopAll();
     setIsWakeWordActive(true);
-    setTimeout(() => {
-      startCommandListeningRef.current();
-    }, 150);
-  }, [isSupported]);
+    setTimeout(() => startCommandListening(), 100);
+  }, [isSupported, stopAll, startCommandListening]);
 
   const stopListening = useCallback(() => {
     isManualRef.current = true;
-    stopCommandRecognition();
+    stopAll();
     setIsListening(false);
     setInterimTranscript('');
     setIsWakeWordActive(false);
-    wakeActiveRef.current = false;
-    // Restart wake loop
-    clearRestartTimer();
-    restartTimerRef.current = setTimeout(() => {
-      if (mountedRef.current) {
-        startWakeLoopRef.current();
-      }
-    }, 500);
-  }, []);
+    setTimeout(() => {
+      isManualRef.current = false;
+      startWakeLoop();
+    }, 300);
+  }, [stopAll, startWakeLoop]);
 
   const resetTranscript = useCallback(() => {
     setTranscript('');
     setInterimTranscript('');
   }, []);
+
+  // Initial boot attempt after first user interaction with page
+  useEffect(() => {
+    const handleInteraction = () => {
+      if (!hasInteractedRef.current) {
+        hasInteractedRef.current = true;
+        startWakeLoop();
+      }
+    };
+    window.addEventListener('mousedown', handleInteraction);
+    window.addEventListener('touchstart', handleInteraction);
+    window.addEventListener('keydown', handleInteraction);
+    return () => {
+      window.removeEventListener('mousedown', handleInteraction);
+      window.removeEventListener('touchstart', handleInteraction);
+      window.removeEventListener('keydown', handleInteraction);
+    };
+  }, [startWakeLoop]);
 
   return {
     transcript,
