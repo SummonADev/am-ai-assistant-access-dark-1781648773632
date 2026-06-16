@@ -23,7 +23,6 @@ export function useSpeechRecognition(): UseSpeechRecognitionReturn {
 
   const wakeRecognitionRef = useRef<any>(null);
   const commandRecognitionRef = useRef<any>(null);
-  const restartTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isManualRef = useRef<boolean>(false);
   const mountedRef = useRef<boolean>(true);
   const isActiveRef = useRef<boolean>(false);
