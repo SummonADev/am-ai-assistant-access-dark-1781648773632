@@ -1,0 +1,92 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-primary: #6c63ff;
+  --color-brand-secondary: #a78bfa;
+  --color-brand-accent: #38bdf8;
+  --color-dark-bg: #0a0a1a;
+  --color-dark-surface: #12122a;
+  --color-dark-card: #1a1a35;
+  --color-dark-border: #2a2a4a;
+}
+
+body {
+  background-color: #0a0a1a;
+  color: #e2e8f0;
+  font-family: 'Inter', system-ui, sans-serif;
+  overflow: hidden;
+}
+
+.waveform-bar {
+  animation: waveform 1.2s ease-in-out infinite;
+}
+
+.waveform-bar:nth-child(1) { animation-delay: 0s; }
+.waveform-bar:nth-child(2) { animation-delay: 0.1s; }
+.waveform-bar:nth-child(3) { animation-delay: 0.2s; }
+.waveform-bar:nth-child(4) { animation-delay: 0.3s; }
+.waveform-bar:nth-child(5) { animation-delay: 0.4s; }
+.waveform-bar:nth-child(6) { animation-delay: 0.5s; }
+.waveform-bar:nth-child(7) { animation-delay: 0.4s; }
+.waveform-bar:nth-child(8) { animation-delay: 0.3s; }
+.waveform-bar:nth-child(9) { animation-delay: 0.2s; }
+.waveform-bar:nth-child(10) { animation-delay: 0.1s; }
+
+@keyframes waveform {
+  0%, 100% { transform: scaleY(0.3); }
+  50% { transform: scaleY(1); }
+}
+
+.pulse-ring {
+  animation: pulse-ring 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+}
+
+@keyframes pulse-ring {
+  0% { transform: scale(0.85); box-shadow: 0 0 0 0 rgba(108, 99, 255, 0.7); }
+  70% { transform: scale(1); box-shadow: 0 0 0 20px rgba(108, 99, 255, 0); }
+  100% { transform: scale(0.85); box-shadow: 0 0 0 0 rgba(108, 99, 255, 0); }
+}
+
+.glow {
+  box-shadow: 0 0 30px rgba(108, 99, 255, 0.4), 0 0 60px rgba(108, 99, 255, 0.1);
+}
+
+.glow-text {
+  text-shadow: 0 0 20px rgba(108, 99, 255, 0.6);
+}
+
+.chat-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: #2a2a4a #12122a;
+}
+
+.chat-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+.chat-scroll::-webkit-scrollbar-track {
+  background: #12122a;
+}
+.chat-scroll::-webkit-scrollbar-thumb {
+  background: #2a2a4a;
+  border-radius: 4px;
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in-up {
+  animation: fadeInUp 0.3s ease-out forwards;
+}
+
+@keyframes typing {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}
+
+.typing-dot {
+  animation: typing 1s ease-in-out infinite;
+}
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
